@@ -27,5 +27,29 @@
 ///
 /// See `test_shell` for more examples.
 pub fn parse_shell_command(command: &str) -> Vec<String> {
-    todo!()
+    let mut cmd: Vec<String> = Vec::new();
+    let mut is_in_quote: bool = false;
+    let mut word: String = String::new();
+    let mut has_token: bool = false;
+
+    for c in command.chars() {
+        match c {
+            '\'' => {
+                is_in_quote = !is_in_quote;
+                has_token = true;
+            }
+            ' ' if !is_in_quote => {
+                if has_token {
+                    cmd.push(word.split_off(0));
+                    has_token = false;
+                }
+            }
+            _ => {
+                word.push(c);
+                has_token = true;
+            }
+        }
+    }
+    if has_token {cmd.push(word.split_off(0))}
+    cmd
 }

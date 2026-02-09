@@ -7,8 +7,13 @@
 ///
 /// Refer `test_repeat` in `assignment08_grade.rs` for detailed examples.
 pub fn repeat<T, F: FnMut(T) -> T>(n: usize, mut f: F) -> impl FnMut(T) -> T {
-    todo!();
-    f // This line has been added to prevent compile error. You can erase this line.
+    // 使用 move 确保闭包拥有了 f 和 n，这样闭包在 repeat 函数生命周期结束后依然有效。
+    move |mut x: T| {
+        for _ in 0..n {
+            x = f(x);
+        }
+        x
+    }
 }
 
 /// Funny Map
@@ -20,7 +25,13 @@ pub fn repeat<T, F: FnMut(T) -> T>(n: usize, mut f: F) -> impl FnMut(T) -> T {
 ///
 /// Refer `test_funny_map` in `assignment08_grade.rs` for detailed examples.
 pub fn funny_map<T, F: Fn(T) -> T>(f: F, vs: Vec<T>) -> Vec<T> {
-    todo!()
+    let mut results = Vec::new();
+    for (i, v) in vs.into_iter().enumerate() {
+        let mut repeater = repeat(i, &f); // 保持原有的值f
+        results.push(repeater(v));
+    }
+
+    results
 }
 
 /// Count Repeat
@@ -33,7 +44,21 @@ pub fn count_repeat<T, F: Fn(T) -> T>(f: F, x: T) -> usize
 where
     T: PartialEq + Copy,
 {
-    todo!()
+    let mut seens = Vec::new();
+    let mut current = x;
+
+    seens.push(current);
+
+    loop {
+        let next_val = f(current);
+        if seens.contains(&next_val) {
+            break;
+        }
+        seens.push(next_val);
+        current = next_val;
+    }
+
+    seens.len()
 }
 
 /// Either `T1`, or `T2`.
@@ -64,6 +89,9 @@ impl<T1, T2> Either2<T1, T2> {
         F1: FnOnce(T1) -> U1,
         F2: FnOnce(T2) -> U2,
     {
-        todo!()
+        match self {
+            Either2::Case1 { inner } => Either2::Case1 { inner: f1(inner) },
+            Either2::Case2 { inner } => Either2::Case2 { inner: f2(inner) },
+        }
     }
 }

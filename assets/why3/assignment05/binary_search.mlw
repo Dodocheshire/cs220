@@ -17,7 +17,25 @@ module BinarySearch
     ensures  { forall i: int. 0 <= i < result -> a[i] < v }
     ensures  { forall i: int. result <= i < length a -> v <= a[i] }
   =
-    (* IMPORTANT: DON'T MODIFY THE ABOVE LINES *)
-    0 (* TODO *)
-
+     if length a = 0 then 0 else begin
+     let ref l = 0 in
+     let ref u = length a - 1 in
+     while l < u do
+        invariant {0 <= l /\ u < length a}
+        invariant {
+          forall i. 0 <= i < length a -> a[i] = v -> l <= i <= u
+        }
+        variant { u - l }
+        let m = l + div (u - l) 2 in
+        if a[m] < v then
+          l := m + 1
+        else if a[m] > v then
+          u := m - 1
+        else
+          u := m (* We can return m, but we want to find the smallest index i such that a[i] = v. *)  
+      done;
+      
+      if a[l] < v then l+1
+      else l
+      end
 end

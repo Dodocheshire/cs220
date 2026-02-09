@@ -36,13 +36,13 @@ mod test {
 
     #[test]
     fn engineering_isnt_just_mathematics() {
-        const N: usize = 77777;
+        const N: usize = 777777777;
         assert_eq!(N, id(N));
     }
 
-    /// This test case is an optional challenge.
-    /// While it's not necessary to pass this test,
-    /// successfully doing so could provide a sense of satisfaction and achievement.
+    // / This test case is an optional challenge.
+    // / While it's not necessary to pass this test,
+    // / successfully doing so could provide a sense of satisfaction and achievement.
     // #[test]
     // fn i_said_engineering_isnt_just_mathematics() {
     //     const N: usize = 777777777777777;

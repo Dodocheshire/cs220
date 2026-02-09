@@ -24,7 +24,8 @@ module FactRecursive
     ensures  { result = fact n }
     variant { n }
   = (* IMPORTANT: DON'T MODIFY THE ABOVE LINES *) 
-    0 (*TODO*)
+    if n = 0 then 1
+    else n * fact_rec (n-1) 
     
 end
 
@@ -39,8 +40,8 @@ module FactLoop
   = let ref m = 0 in
     let ref r = 1 in
     while m < n do
-      invariant { true (* TODO: Replace `true` with your solution  *) }
-      variant { n (* TODO: Replace `n` with your solution  *) }
+      invariant { r = fact m /\ 0 <= m <= n}
+      variant { n - m }
       m <- m + 1;
       r <- r * m
     done;

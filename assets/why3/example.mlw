@@ -1,0 +1,70 @@
+module MaxAndSum
+    use int.Int
+    use ref.Ref 
+    use array.Array
+
+
+    let max_sum (a: array int) (n: int) : (int, int)
+        requires {n = length a}
+        requires {forall i. 0 <= i < n -> a[i] >= 0}
+        returns {sum, max -> sum <= n * max} 
+      = let sum = ref 0 in
+        let max = ref 0 in
+        for i = 0 to n - 1 do 
+            invariant { !sum <= i * !max}
+            if !max < a[i] then max := a[i];
+            sum := !sum + a[i]
+        done;
+        !sum, !max
+
+end
+
+predicate injective (a: array int) (n: int) =
+    forall i j. 0 <= i < n -> 0 <= j < n -> i <> j -> a[i] <> a[j]
+predicate surjective (a: array int) (n: int) =
+    forall i. 0 <= i < n -> exists j: int. (0 <= j < n /\ a[j] = i)
+predicate range (a: array int) (n: int) = 
+    forall i. 0 <= i < n -> 0 <= a[i] < n
+
+lemma injective_surjective:
+    forall a: array int, n: int.
+        injective a n -> range a n -> surjective a n
+
+let inverting (a: array int) (b: array int) (n: int) 
+    requires {n = length a = length b}
+    requires {injective a n /\ range a n}
+    ensures {injective b n}
+  = for i = 0 to n - 1 do
+        invariant {forall j. 0 <= j < i -> b[a[j]] = j}
+        b[a[i]] <- i
+    done
+
+module LinkListSearch 
+    use int.Int
+    use export list.List (* 导入链表定义：Nil | Cons x r *)
+    use export list.Length
+    use export list.Nth
+    use option.Option
+
+predicate zero_at (l: list int) (i: int) = 
+    nth i l = Some 0 /\ forall j. 0 <= j < i -> nth j l <> Some 0
+
+predicate no_zero (l: list int) = 
+    forall i. 0 <= i < length l -> nth i l <> Some 0
+
+let rec search (i: int) (l: list int) : int
+    variant {l}
+    ensures {(i <= result < i + length l /\ zero_at l (result - i))
+            \/ (result = i + length l /\ no_zero l)}
+  = match l with
+    | Nil -> i
+    | Cons x r ->
+        if x = 0 then i 
+        else search (i + 1) r
+    end
+
+let search_list (l: list int) : int
+    ensures {(0 <= result < length l /\ zero_at l result)
+             \/ (result = length l /\ no_zero l)}
+  = search 0 l
+end

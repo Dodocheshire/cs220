@@ -2,6 +2,9 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::hash::Hash;
+
+use crate::assignments::assignment03::custom_operators::MyOption;
 
 /// Day of week.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,7 +29,15 @@ pub enum DayOfWeek {
 ///
 /// `next_weekday(Thu)` is `Fri`; and `next_weekday(Fri)` is `Mon`.
 pub fn next_weekday(day: DayOfWeek) -> DayOfWeek {
-    todo!()
+    match day {
+        DayOfWeek::Sun => DayOfWeek::Mon,
+        DayOfWeek::Mon => DayOfWeek::Tue,
+        DayOfWeek::Tue => DayOfWeek::Wed,
+        DayOfWeek::Wed => DayOfWeek::Thu,
+        DayOfWeek::Thu => DayOfWeek::Fri,
+        DayOfWeek::Fri => DayOfWeek::Mon,
+        DayOfWeek::Sat => DayOfWeek::Mon,
+    }
 }
 
 /// Given a list of integers, returns its median (when sorted, the value in the middle position).
@@ -52,7 +63,14 @@ pub fn next_weekday(day: DayOfWeek) -> DayOfWeek {
 ///
 /// Returns `None` if the list is empty.
 pub fn median(values: Vec<isize>) -> Option<isize> {
-    todo!()
+    if values.is_empty() {
+        None
+    } else {
+        let mut values = values; // no copy, just move
+        values.sort_unstable();
+        let mid = values.len() / 2;
+        Some(values[mid])
+    }
 }
 
 /// Given a list of integers, returns its smallest mode (the value that occurs most often; a hash
@@ -60,7 +78,15 @@ pub fn median(values: Vec<isize>) -> Option<isize> {
 ///
 /// Returns `None` if the list is empty.
 pub fn mode(values: Vec<isize>) -> Option<isize> {
-    todo!()
+    let mut cnt: HashMap<isize, isize> = HashMap::new();
+    for &v in values.iter() {
+        *cnt.entry(v).or_insert(0) += 1;
+    }
+    cnt.into_iter()
+        .max_by(|(val_a, count_a), (val_b, count_b)| {
+            count_a.cmp(count_b).then_with(|| val_b.cmp(val_a))
+        })
+        .map(|(val, _count)| val)
 }
 
 /// Converts the given string to Pig Latin. Use the rules below to translate normal English into Pig
@@ -83,7 +109,23 @@ pub fn mode(values: Vec<isize>) -> Option<isize> {
 ///
 /// You may assume the string only contains lowercase alphabets, and it contains at least one vowel.
 pub fn piglatin(input: String) -> String {
-    todo!()
+    let mut input = input;
+    let mut prefix: String = String::new();
+    for (i, c) in (0..).zip(input.chars()) {
+        match c {
+            'a' | 'e' | 'i' | 'o' | 'u' => {
+                prefix = input.split_off(i);
+                break;
+            }
+            _ => {}
+        }
+    }
+    if input.is_empty() {
+        prefix += "h";
+    }
+    prefix += &input;
+    prefix += "ay";
+    prefix
 }
 
 /// Converts HR commands to the organization table.
@@ -109,7 +151,60 @@ pub fn piglatin(input: String) -> String {
 ///
 /// See the test function for more details.
 pub fn organize(commands: Vec<String>) -> HashMap<String, HashSet<String>> {
-    todo!()
+    let mut depart_info: HashMap<String, HashSet<String>> = HashMap::new();
+    use super::parse_shell::parse_shell_command;
+    for cmd in commands.iter() {
+        let parse_res = parse_shell_command(cmd);
+        match (
+            parse_res[0].to_ascii_lowercase().as_str(),
+            parse_res[2].to_ascii_lowercase().as_str(),
+        ) {
+            ("add", "to") => {
+                let person = parse_res[1].clone();
+                let depart = parse_res[3].clone();
+                let _unused = depart_info
+                    .entry(depart)
+                    .or_insert(HashSet::new())
+                    .insert(person);
+            }
+            ("remove", "from") => {
+                let person = parse_res[1].clone();
+                let depart = parse_res[3].clone();
+                match depart_info.get_mut(&depart) {
+                    None => {}
+
+                    Some(people) => {
+                        if people.remove(&person) & people.is_empty() {
+                            let _unused = depart_info.remove(&depart);
+                        }
+                    }
+                }
+            }
+            ("move", "from") => {
+                let person = parse_res[1].clone();
+                let from_depart = parse_res[3].clone();
+                let to_depart = parse_res[5].clone();
+                let removed = if let Some(people) = depart_info.get_mut(&from_depart) {
+                    let ok = people.remove(&person);
+                    if people.is_empty() {
+                        let _unused = depart_info.remove(&from_depart);
+                    }
+                    ok
+                } else {
+                    false
+                };
+
+                if removed {
+                    let _unused = depart_info
+                        .entry(to_depart)
+                        .or_insert(HashSet::new())
+                        .insert(person);
+                }
+            }
+            (_, _) => {}
+        }
+    }
+    depart_info
 }
 
 /// Events in a text editor.
@@ -130,5 +225,23 @@ pub enum TypeEvent {
 ///
 /// See the test function `test_editor` for examples.
 pub fn use_editor(events: Vec<TypeEvent>) -> String {
-    todo!()
+    let mut buffer = String::new();
+    let mut clipboard = String::new();
+    for ev in events.iter() {
+        match ev {
+            TypeEvent::Type(c) => {
+                buffer.push(c.clone());
+            }
+            TypeEvent::Backspace => {
+                let _unused = buffer.pop();
+            }
+            TypeEvent::Copy => {
+                clipboard = buffer.clone();
+            }
+            TypeEvent::Paste => {
+                buffer += &clipboard;
+            }
+        }
+    }
+    buffer
 }
