@@ -21,6 +21,7 @@
 //! Refer `tv_room_grade.rs` for test cases.
 
 use std::cell::RefCell;
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy)]
@@ -56,12 +57,31 @@ impl TVRoom {
     ///
     /// Returns `None` if the TV room is already opened.
     pub fn open(&self) -> Option<Manager<'_>> {
-        todo!()
+        //     match self.state.borrow_mut().deref_mut() {
+        //         TVRoomState::Opened => return None,
+        //         state => {
+        //             // RefMut对象临时对象的生命周期会覆盖整个match语句,此时RefCell的内部状态是Writing
+        //             *state = TVRoomState::Opened;
+        //             // 不会触发 RefCell 的 Panic,因为只是传递RefCell(容器) 的引用,没有调用borrow() / borrow_mut()
+        //             return Some(Manager::new(&self.state));
+        //         }
+        //     }
+        // 或者这样写更健壮
+        let already_opened = matches!(*self.state.borrow(), TVRoomState::Opened); // helpful macro to check if a value matches a pattern
+        if already_opened {
+            None
+        } else {
+            *self.state.borrow_mut() = TVRoomState::Opened;
+            Some(Manager::new(&self.state))
+        }
     }
 
     /// Returns whether the TV room is opened or not.
     pub fn is_opened(&self) -> bool {
-        todo!()
+        match self.state.borrow().deref() {
+            TVRoomState::Closed => false,
+            TVRoomState::Opened => true,
+        }
     }
 }
 
@@ -84,7 +104,9 @@ impl<'a> Manager<'a> {
 
     /// Adds new guest to the TV room.
     pub fn new_guest(&self) -> Guest<'a> {
-        todo!()
+        Guest {
+            inner: Rc::clone(&self.inner),
+        }
     }
 }
 
@@ -108,6 +130,6 @@ impl<'a> Watcher<'a> {
 impl Drop for Watcher<'_> {
     fn drop(&mut self) {
         // When the last person leaves the TV room, the TV room should be closed.
-        todo!()
+        *self.tvstate.borrow_mut() = TVRoomState::Closed;
     }
 }

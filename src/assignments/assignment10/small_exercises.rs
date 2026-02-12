@@ -3,6 +3,8 @@
 use std::collections::HashSet;
 
 use itertools::*;
+use ndarray::Data;
+use rayon::result;
 
 /// Returns the pairs of `(i, j)` where `i < j` and `inner[i] > inner[j]` in increasing order.
 ///
@@ -17,7 +19,11 @@ use itertools::*;
 ///
 /// Consult <https://en.wikipedia.org/wiki/Inversion_(discrete_mathematics)> for more details of inversion.
 pub fn inversion<T: Ord>(inner: Vec<T>) -> Vec<(usize, usize)> {
-    todo!()
+    let n = inner.len();
+    (0..n)
+        .cartesian_product(0..n)
+        .filter(|(a, b)| a < b && inner[*a] > inner[*b])
+        .collect()
 }
 
 /// Represents a node of tree data structure.
@@ -68,7 +74,16 @@ pub enum Node<T> {
 ///
 /// is `1 -> 2 -> 5 -> 6 -> 3 -> 4 -> 7 -> 8 -> 9`.
 pub fn traverse_preorder<T>(root: Node<T>) -> Vec<T> {
-    todo!()
+    // idk
+    // 结合递归与迭代器的 chain（链接）以及 flat_map（扁平映射）
+    match root {
+        Node::Leaf(f) => {
+            vec![f]
+        }
+        Node::NonLeaf((x, children)) => std::iter::once(x)
+            .chain(children.into_iter().flat_map(traverse_preorder))
+            .collect(),
+    }
 }
 
 /// File
@@ -114,7 +129,34 @@ pub enum File {
 /// Output: `[("a1", 1), ("a2", 3), ("b1", 3), ("a", 4), ("c", 8), ("b2", 15), ("b", 18), ("root",
 /// 30)]`
 pub fn du_sort(root: &File) -> Vec<(&str, usize)> {
-    todo!()
+    // hard
+    fn collect_info(node: &File) -> (usize, Vec<(&str, usize)>) {
+        match node {
+            // 数据文件：大小就是自身，列表只包含自己
+            File::Data(name, size) => (*size, vec![(name.as_str(), *size)]),
+
+            // 目录：大小是直接子项的大小之和
+            File::Directory(name, children) => {
+                let mut dir_size = 0;
+                let mut all_items = Vec::new();
+
+                for child in children {
+                    let (child_size, mut child_items) = collect_info(child);
+                    dir_size += child_size; // 累加直接子项的大小
+                    all_items.append(&mut child_items); // 收集子项及其子孙的所有记录
+                }
+
+                // 将目录本身的信息存入列表
+                all_items.push((name.as_str(), dir_size));
+                (dir_size, all_items)
+            }
+        }
+    }
+
+    let (_, mut result) = collect_info(root);
+
+    result.sort_by(|a, b| a.1.cmp(&b.1).then_with(|| a.0.cmp(b.0)));
+    result
 }
 
 /// Remove all even numbers inside a vector using the given mutable reference.
@@ -129,7 +171,7 @@ pub fn du_sort(root: &File) -> Vec<(&str, usize)> {
 /// ```
 #[allow(clippy::ptr_arg)]
 pub fn remove_even(inner: &mut Vec<i64>) {
-    todo!()
+    inner.retain(|&x| x % 2 != 0)
 }
 
 /// Remove all duplicate occurences of a number inside the array.
@@ -146,7 +188,9 @@ pub fn remove_even(inner: &mut Vec<i64>) {
 /// ```
 #[allow(clippy::ptr_arg)]
 pub fn remove_duplicate(inner: &mut Vec<i64>) {
-    todo!()
+    // idk
+    inner.sort_unstable();
+    inner.dedup();
 }
 
 /// Returns the natural join of two tables using the first column as the join argument.
@@ -172,23 +216,127 @@ pub fn remove_duplicate(inner: &mut Vec<i64>) {
 ///  20231234 |    Mike   |     ME
 /// ```
 pub fn natural_join(table1: Vec<Vec<String>>, table2: Vec<Vec<String>>) -> Vec<Vec<String>> {
-    todo!()
+    let joint_pairs = table1.into_iter().cartesian_product(table2);
+    let mut result: Vec<Vec<String>> = Vec::new();
+    joint_pairs
+        .filter(|(e1, e2)| e1[0] == e2[0])
+        .map(|(mut e1, e2)| {
+            e1.extend(e2.into_iter().skip(1));
+            e1
+        })
+        .collect()
 }
 
 /// You can freely add more fields.
-struct Pythagorean;
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
 
-impl Pythagorean {
-    fn new() -> Self {
-        todo!()
+#[derive(Eq, PartialEq)]
+struct Candidate {
+    c: u64,
+    m: u64,
+    n: u64,
+}
+impl Ord for Candidate {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // 反转比较逻辑，使 BinaryHeap 变成"最小堆"
+        let ord = other.c.cmp(&self.c);
+        if ord != Ordering::Equal {
+            return ord;
+        }
+
+        // 如果c相等，比较a的值,要求勾股数(a, b, c) c相等时优先生成a小的数对,即a更小时在堆中应该优先
+        let get_a = |m: u64, n: u64| {
+            let leg1 = m * m - n * n;
+            let leg2 = 2 * m * n;
+            if leg1 < leg2 {
+                leg1
+            } else {
+                leg2
+            } // 生成的勾股数对应该a < b
+        };
+        let self_a = get_a(self.m, self.n);
+        let other_a = get_a(other.m, other.n);
+        other_a.cmp(&self_a)
     }
 }
-
+impl PartialOrd for Candidate {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+struct Pythagorean {
+    heap: BinaryHeap<Candidate>, // min heap(using our cmp logic)
+}
+// too hard
+// a = m^2 - n^2
+// b = 2mn
+// c = m^2 + n^2
+// && m > n > 0 gcd(m, n) = 1, m - n is odd
+impl Pythagorean {
+    fn new() -> Self {
+        let mut heap = BinaryHeap::new();
+        heap.push(Candidate { c: 5, m: 2, n: 1 });
+        Pythagorean { heap }
+    }
+}
+fn gcd(mut a: u64, mut b: u64) -> u64 {
+    while b != 0 {
+        a %= b;
+        std::mem::swap(&mut a, &mut b);
+    }
+    a
+}
 impl Iterator for Pythagorean {
     type Item = (u64, u64, u64);
 
+    // 难点：实现一个流式排序算法，把一个二维网格里的点，按照c = m^2 + n^2的顺序"拉成"一条线
+    // 如何不重不漏地遍历整个无穷大的网格?
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        // 循环直到找到一个符合条件的本原勾股数
+        while let Some(Candidate { c, m, n }) = self.heap.pop() {
+            // 生成后续候选者放入堆中以保证序列不中断
+            // 规则：1. 增加 n (如果 n+1 < m)
+            // 即网格中的点(m, n) => (m, n+1)
+            // 所以对所有n > 1的点(m, n)只能由规则一生成(网格中横向箭头)
+            if n + 1 < m {
+                let next_n = n + 1;
+                self.heap.push(Candidate {
+                    c: m * m + next_n * next_n,
+                    m,
+                    n: next_n,
+                });
+            }
+            // 规则：2. 如果当前是 n=1，尝试增加 m（避免重复生成）
+            // 即网格中的点(m, 1) => 生成 (m+1, 1)
+            // 所以对所有n = 1的点(m, n)只能由规则二生成
+
+            // 规则一/二保证了每个(m > n)节点有且仅被加入heap中一次，每从heap中弹出一个节点，就会push进0/1/2个节点
+
+            if n == 1 {
+                let next_m = m + 1;
+                self.heap.push(Candidate {
+                    c: next_m * next_m + 1,
+                    m: next_m,
+                    n: 1,
+                });
+            }
+
+            // 检查当前的 (m, n) 是否能生成本原勾股数
+            // 条件：1. 互质 2. 奇偶性不同
+            if (m - n) % 2 == 1 && gcd(m, n) == 1 {
+                let leg_a = m * m - n * n;
+                let leg_b = 2 * m * n;
+                // requires a < b
+                let (a, b) = if leg_a < leg_b {
+                    (leg_a, leg_b)
+                } else {
+                    (leg_b, leg_a)
+                };
+                return Some((a, b, c));
+            }
+        }
+        None
     }
 }
 

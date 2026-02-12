@@ -27,6 +27,10 @@ mod test_linked_list {
     fn test_from_into_vec() {
         assert_eq!(SinglyLinkedList::<i32>::new().into_vec(), vec![]);
         assert_eq!(
+            SinglyLinkedList::from_vec(vec![1, 3, 5, 2, 1, 2, 10, 25, 13]).into_vec(),
+            vec![1, 3, 5, 2, 1, 2, 10, 25, 13]
+        );
+        assert_eq!(
             SinglyLinkedList::from_vec(vec![1, 2, 3]).into_vec(),
             vec![1, 2, 3]
         );
@@ -36,6 +40,8 @@ mod test_linked_list {
     fn test_length() {
         let list = SinglyLinkedList::from_vec(vec![1, 2, 3]);
         assert_eq!(list.length(), 3);
+        let list = SinglyLinkedList::from_vec(vec![1]);
+        assert_eq!(list.length(), 1);
     }
 
     #[test]

@@ -6,6 +6,7 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ops::Deref;
 
 /// Mock storage.
 #[derive(Debug)]
@@ -47,15 +48,30 @@ pub trait Storage {
 
 impl Storage for MockStorage {
     fn upload(&self, name: &str, size: usize) -> Result<(), usize> {
-        todo!()
+        let mut files = self.files.borrow_mut();
+        let original_fsize = files.get(&name.to_string()).cloned().unwrap_or(0);
+        // 不要调用 self.used(), RefCell的写锁还没释放
+        let current_used: usize = files.values().sum();
+        let new_size = current_used - original_fsize + size;
+        if new_size > self.capacity {
+            return Err(new_size - self.capacity);
+        }
+        // 注意这里要求files: RefMut<HashMap..>是mutable变量，因为insert方法需要&mut HashMap
+        // 这需要DerefMut trait来自动尝试解引用files
+        // pub trait DerefMut: Deref {
+        //     fn deref_mut(&mut self) -> &mut Self::Target;
+        // }
+        // 所以需要变量files是可变绑定
+        let _ = files.insert(name.to_string(), size);
+        Ok(())
     }
 
     fn used(&self) -> usize {
-        todo!()
+        self.files.borrow().values().sum()
     }
 
     fn capacity(&self) -> usize {
-        todo!()
+        self.capacity
     }
 }
 
@@ -75,7 +91,7 @@ impl<'a, T: Storage> FileUploader<'a, T> {
 
     /// Uploads a file to the internal storage.
     pub fn upload(&self, name: &str, size: usize) -> Result<(), usize> {
-        todo!()
+        self.storage.upload(name, size)
     }
 }
 
@@ -94,6 +110,6 @@ impl<'a, T: Storage> UsageAnalyzer<'a, T> {
 
     /// Returns `true` if the usage of the internal storage is under the bound.
     pub fn is_usage_under_bound(&self) -> bool {
-        todo!()
+        (self.storage.used() as f64) < (self.storage.capacity() as f64) * self.bound
     }
 }
