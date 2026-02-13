@@ -63,7 +63,7 @@ mod test_pingpong {
                                 *a += 1;
                                 break;
                             }
-                        }
+                        } // drop MutexGuard -> release Mutex
                     }
                     thread::current().id()
                 },

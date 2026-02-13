@@ -14,6 +14,7 @@
 
 pub mod card;
 pub mod demux;
+pub mod example;
 pub mod funnel;
 pub mod small_exercises;
 
